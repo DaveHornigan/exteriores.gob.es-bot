@@ -65,11 +65,17 @@ class ConsultationRegistration:
                         need_repeat = False
                         self.disconnect()
                 except NoSuchElementException:
-                    self.select_date()
+                    self.login_and_select_date()
             except TimeoutException:
                 print('Page loading timeout!')
 
-    async def select_date(self):
+    async def login_and_select_date(self):
+        self.browser.find_element(By.LINK_TEXT, 'Cancelar o consultar mis reservas').click()
+        self.wait(EC.visibility_of_element_located((By.XPATH, '//*[@id="idIptBktAccountLoginlogin"]')))
+        self.browser.find_element(By.XPATH, '//*[@id="idIptBktAccountLoginlogin"]').send_keys(self.user['login'])
+        self.browser.find_element(By.XPATH, '//*[@id="idIptBktAccountLoginpassword"]').send_keys(self.user['password'])
+        self.browser.find_element(By.XPATH, '//*[@id="idBktDefaultAccountLoginConfirmButton"]').click()
+
         print('Stub')
 
 
