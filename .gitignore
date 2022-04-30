@@ -4,3 +4,4 @@ venv
 build
 dist
 *.csv
+url.txt
