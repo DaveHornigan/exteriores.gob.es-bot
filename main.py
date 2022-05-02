@@ -12,7 +12,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.chromium.webdriver import ChromiumDriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.remote.webelement import WebElement
 from webdriver_manager.chrome import ChromeDriverManager
 
 executor = ThreadPoolExecutor(8)
@@ -46,11 +45,12 @@ class ConsultationRegistration:
         WebDriverWait(self.browser, delay).until(method)
 
     def try_select_date(self):
-        print(self.user['login'], self.user['password'])
+        print('Logged in by: ' + self.user['login'])
         need_repeat = True
         while need_repeat:
             self.browser.get(self.url)
             print('Page loaded')
+            self.wait(EC.visibility_of_element_located((By.LINK_TEXT, 'ELEGIR FECHA Y HORA')))
             self.browser.find_element(By.LINK_TEXT, 'ELEGIR FECHA Y HORA').click()
             print('Go to captcha')
             self.browser.find_element(By.XPATH, '//*[@id="idCaptchaButton"]').click()
@@ -62,13 +62,12 @@ class ConsultationRegistration:
                 print('Time list loaded')
                 try:
                     self.login_and_select_date()
-                    not_available = self.browser.find_element(By.XPATH, '//*[@id="idDivNotAvailableSlotsContainer"]')
-                    if type(not_available) is WebElement:
-                        print('Not available slots!')
-                        need_repeat = False
-                        # self.disconnect()
-                        time.sleep(10)
+                    self.browser.find_element(By.XPATH, '//*[@id="idDivNotAvailableSlotsContainer"]')
+                    print('Not available slots!')
+                    need_repeat = False
+                    time.sleep(10)
                 except NoSuchElementException:
+
                     print('Stub')
             except TimeoutException:
                 print('Page loading timeout!')
