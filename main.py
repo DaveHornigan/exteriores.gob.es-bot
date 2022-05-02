@@ -57,7 +57,8 @@ class ConsultationRegistration:
             print('Captcha passed')
             try:
                 print('Try load time list')
-                self.wait(EC.visibility_of_element_located((By.XPATH, '//*[@id="idTimeListTable"]')))
+                self.wait(EC.visibility_of_element_located((By.XPATH, '//*[@id="idTimeListTable"]')), 120)
+                self.wait(EC.invisibility_of_element_located((By.CLASS_NAME, 'clsDivBktWidgetDefaultLoading')), 120)
                 print('Time list loaded')
                 try:
                     self.login_and_select_date()
@@ -104,14 +105,15 @@ class ConsultationRegistration:
         print('Try load time list')
         self.wait(EC.visibility_of_element_located((By.XPATH, '//*[@id="idTimeListTable"]')))
         try:
-            not_available = self.browser.find_element(By.XPATH, '//*[@id="idDivNotAvailableSlotsContainer"]')
-            if type(not_available) is WebElement:
-                print('Not available slots! Try again..')
-                self.wait(EC.element_to_be_clickable((By.XPATH, '//*[@id="idBktWidgetDefaultFooterAccountSignOutAccountName"]')))
-                self.wait(EC.invisibility_of_element_located((By.CLASS_NAME, 'clsDivBktWidgetDefaultLoading')))
-                print('Go to history')
-                self.browser.find_element(By.PARTIAL_LINK_TEXT, 'Ver historial').click()
-                return False
+            self.wait(EC.element_to_be_clickable((
+                By.XPATH,
+                '//*[@id="idBktWidgetDefaultFooterAccountSignOutAccountName"]'
+            )))
+            self.wait(EC.invisibility_of_element_located((By.CLASS_NAME, 'clsDivBktWidgetDefaultLoading')), 120)
+            self.browser.find_element(By.XPATH, '//*[@id="idDivNotAvailableSlotsContainer"]')
+            print('Not available slots! Try again.. Go to history')
+            self.browser.find_element(By.PARTIAL_LINK_TEXT, 'Ver historial').click()
+            return False
         except NoSuchElementException:
             time.sleep(10)
             print('Slot Available Stub')
