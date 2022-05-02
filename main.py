@@ -2,6 +2,7 @@ import asyncio
 import logging
 import pathlib
 import csv
+import time
 from concurrent.futures.thread import ThreadPoolExecutor
 
 from selenium import webdriver
@@ -59,24 +60,62 @@ class ConsultationRegistration:
                 self.wait(EC.visibility_of_element_located((By.XPATH, '//*[@id="idTimeListTable"]')))
                 print('Time list loaded')
                 try:
+                    self.login_and_select_date()
                     not_available = self.browser.find_element(By.XPATH, '//*[@id="idDivNotAvailableSlotsContainer"]')
                     if type(not_available) is WebElement:
                         print('Not available slots!')
                         need_repeat = False
-                        self.disconnect()
+                        # self.disconnect()
+                        time.sleep(10)
                 except NoSuchElementException:
-                    self.login_and_select_date()
+                    print('Stub')
             except TimeoutException:
                 print('Page loading timeout!')
 
-    async def login_and_select_date(self):
+    def login_and_select_date(self):
         self.browser.find_element(By.LINK_TEXT, 'Cancelar o consultar mis reservas').click()
         self.wait(EC.visibility_of_element_located((By.XPATH, '//*[@id="idIptBktAccountLoginlogin"]')))
+        print('Login form loaded')
+        print('Send passport')
         self.browser.find_element(By.XPATH, '//*[@id="idIptBktAccountLoginlogin"]').send_keys(self.user['login'])
+        print('Send password')
         self.browser.find_element(By.XPATH, '//*[@id="idIptBktAccountLoginpassword"]').send_keys(self.user['password'])
+        print('Login')
         self.browser.find_element(By.XPATH, '//*[@id="idBktDefaultAccountLoginConfirmButton"]').click()
+        try:
+            repeat = True
+            while repeat:
+                result = self.has_free_time()
+                if result:
+                    print('Repeating stopped')
+                    repeat = False
+                else:
+                    print('Wait 3 seconds...')
+                    time.sleep(3)
 
-        print('Stub')
+        except NoSuchElementException:
+            print('User already registered')
+            self.browser.quit()
+
+    def has_free_time(self) -> bool:
+        self.wait(EC.visibility_of_element_located((By.XPATH, '//*[@id="idDivBktAccountHistoryContainer"]')))
+        self.browser.find_element(By.XPATH, '//*[@id="idDivBktAccountHistoryContentNoEvents"]')
+        self.browser.find_element(By.XPATH, '//*[@id="idBktDefaultAccountHistoryContainer"]/div[1]/a/div').click()
+        print('Try load time list')
+        self.wait(EC.visibility_of_element_located((By.XPATH, '//*[@id="idTimeListTable"]')))
+        try:
+            not_available = self.browser.find_element(By.XPATH, '//*[@id="idDivNotAvailableSlotsContainer"]')
+            if type(not_available) is WebElement:
+                print('Not available slots! Try again..')
+                self.wait(EC.element_to_be_clickable((By.XPATH, '//*[@id="idBktWidgetDefaultFooterAccountSignOutAccountName"]')))
+                self.wait(EC.invisibility_of_element_located((By.CLASS_NAME, 'clsDivBktWidgetDefaultLoading')))
+                print('Go to history')
+                self.browser.find_element(By.PARTIAL_LINK_TEXT, 'Ver historial').click()
+                return False
+        except NoSuchElementException:
+            time.sleep(10)
+            print('Slot Available Stub')
+            return True
 
 
 def scrape(url: str, user: dict, *, loop):
