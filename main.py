@@ -125,7 +125,8 @@ class ConsultationRegistration:
             try:
                 self.browser.find_element(By.CLASS_NAME, 'clsAvailableSlotsDate').click()
             except NoSuchElementException:
-                print('Not available dates with free slots! Try again.. Go to history')
+                print('Not available dates with free slots! Wait 3 seconds and try again..')
+                time.sleep(3)
                 self.browser.find_element(
                     By.XPATH,
                     '//*[@id="idBktWidgetDefaultBodyContainer"]/div[@style="display: block;"]'
@@ -154,7 +155,6 @@ def scrape(url: str, user: dict, *, loop):
 
 
 def scraper(url: str, user: dict):
-    print(url, user['login'], user['password'])
     registration = ConsultationRegistration(url, user)
     registration.try_select_date()
 
