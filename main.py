@@ -49,7 +49,6 @@ class ConsultationRegistration:
         need_repeat = True
         while need_repeat:
             self.browser.get(self.url)
-            print('Page loaded')
             self.wait(EC.visibility_of_element_located((By.LINK_TEXT, 'ELEGIR FECHA Y HORA')))
             self.browser.find_element(By.LINK_TEXT, 'ELEGIR FECHA Y HORA').click()
             print('Go to captcha')
@@ -60,19 +59,19 @@ class ConsultationRegistration:
                 self.wait(EC.visibility_of_element_located((By.XPATH, '//*[@id="idTimeListTable"]')), 120)
                 self.wait(EC.invisibility_of_element_located((By.CLASS_NAME, 'clsDivBktWidgetDefaultLoading')), 120)
                 print('Time list loaded')
+                self.login()
                 try:
-                    self.login_and_select_date()
-                    self.browser.find_element(By.XPATH, '//*[@id="idDivNotAvailableSlotsContainer"]')
-                    print('Not available slots!')
+                    if self.is_user_already_registered():
+                        exit(0)
+                    self.find_free_slots()
                     need_repeat = False
                     time.sleep(10)
                 except NoSuchElementException:
-
-                    print('Stub')
+                    print('Error!')
             except TimeoutException:
                 print('Page loading timeout!')
 
-    def login_and_select_date(self):
+    def login(self):
         self.browser.find_element(By.LINK_TEXT, 'Cancelar o consultar mis reservas').click()
         self.wait(EC.visibility_of_element_located((By.XPATH, '//*[@id="idIptBktAccountLoginlogin"]')))
         print('Login form loaded')
@@ -82,24 +81,34 @@ class ConsultationRegistration:
         self.browser.find_element(By.XPATH, '//*[@id="idIptBktAccountLoginpassword"]').send_keys(self.user['password'])
         print('Login')
         self.browser.find_element(By.XPATH, '//*[@id="idBktDefaultAccountLoginConfirmButton"]').click()
-        try:
-            repeat = True
-            while repeat:
-                result = self.has_free_time()
-                if result:
-                    print('Repeating stopped')
-                    repeat = False
-                else:
-                    print('Wait 3 seconds...')
-                    time.sleep(3)
 
-        except NoSuchElementException:
-            print('User already registered')
-            self.browser.quit()
-
-    def has_free_time(self) -> bool:
+    def is_user_already_registered(self) -> bool:
+        print('Check user history')
         self.wait(EC.visibility_of_element_located((By.XPATH, '//*[@id="idDivBktAccountHistoryContainer"]')))
-        self.browser.find_element(By.XPATH, '//*[@id="idDivBktAccountHistoryContentNoEvents"]')
+        self.wait(EC.invisibility_of_element_located((By.CLASS_NAME, 'clsDivBktWidgetDefaultLoading')))
+        element = self.browser.find_element(By.XPATH, '//*[@id="idDivBktAccountHistoryContentNoEvents"]')
+        if element.is_displayed():
+            print('User not registered')
+            return False
+        print('User already registered!')
+        return True
+
+    def find_free_slots(self):
+        repeat = True
+        while repeat:
+            result = self.has_free_slots()
+            if result:
+                print('Repeating stopped. Slot available!')
+                repeat = False
+                self.try_register_slot()
+            else:
+                if self.is_user_already_registered():
+                    exit(0)
+                print('Wait 3 seconds...')
+                time.sleep(3)
+
+    def has_free_slots(self) -> bool:
+        self.wait(EC.visibility_of_element_located((By.XPATH, '//*[@id="idDivBktAccountHistoryContainer"]')))
         self.browser.find_element(By.XPATH, '//*[@id="idBktDefaultAccountHistoryContainer"]/div[1]/a/div').click()
         print('Try load time list')
         self.wait(EC.visibility_of_element_located((By.XPATH, '//*[@id="idTimeListTable"]')))
@@ -110,13 +119,34 @@ class ConsultationRegistration:
             )))
             self.wait(EC.invisibility_of_element_located((By.CLASS_NAME, 'clsDivBktWidgetDefaultLoading')), 120)
             self.browser.find_element(By.XPATH, '//*[@id="idDivNotAvailableSlotsContainer"]')
+            print('Open calendar')
+            self.browser.find_element(By.XPATH, '//*[@id="idDivBktDatetimeDatePickerText"]').click()
+            print('Find date with free slots')
+            try:
+                self.browser.find_element(By.CLASS_NAME, 'clsAvailableSlotsDate').click()
+            except NoSuchElementException:
+                print('Not available dates with free slots! Try again.. Go to history')
+                self.browser.find_element(
+                    By.XPATH,
+                    '//*[@id="idBktWidgetDefaultBodyContainer"]/div[@style="display: block;"]'
+                ).click()
+                self.browser.find_element(
+                    By.XPATH,
+                    '//*[@id="idBktWidgetDefaultFooterAccountSignOutAccountName"]'
+                ).click()
+                return False
+            print('Date selected')
+            self.browser.find_element(By.XPATH, '//*[@id="idDivNotAvailableSlotsContainer"]')
             print('Not available slots! Try again.. Go to history')
-            self.browser.find_element(By.PARTIAL_LINK_TEXT, 'Ver historial').click()
+            self.browser.find_element(By.XPATH, '//*[@id="idBktWidgetDefaultFooterAccountSignOutAccountName"]').click()
             return False
         except NoSuchElementException:
-            time.sleep(10)
-            print('Slot Available Stub')
             return True
+
+    def try_register_slot(self):
+        self.browser.find_element(By.CLASS_NAME, 'clsDivDatetimeSlot').click()
+        self.wait(EC.element_to_be_clickable((By.XPATH, '//*[@id="idBktDefaultSignInConfirmButton"]')))
+        self.browser.find_element(By.XPATH, '//*[@id="idBktDefaultSignInConfirmButton"]').click()
 
 
 def scrape(url: str, user: dict, *, loop):
