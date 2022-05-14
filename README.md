@@ -3,4 +3,4 @@
 2. Paste logins and passwords to clients.csv file in format "login,password"
 3. Rename url.txt.example to url.txt and replace url in it if you need
 4. Run ```pip install -r requirements.txt```
-5. Run python main.py
+5. Run ```python main.py```
